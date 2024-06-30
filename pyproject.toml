@@ -15,6 +15,7 @@ streamlink = "^6.8.1"
 httpx-socks = "^0.9.1"
 ffmpeg-python = "^0.2.0"
 h2 = "^4.1.0"
+pyinstaller = {version = "^6.8.0", python = ">=3.12,<3.13"}
 
 
 [build-system]
