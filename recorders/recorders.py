@@ -204,7 +204,7 @@ class Chzzk:
             return status
 
         except Exception as e:
-            logger.info(self.flag, f"Error occurred while fetching channel information: {e}")
+            logger.info(f"Error occurred while fetching channel information: {e}")
             return None
 
         return None
@@ -238,30 +238,30 @@ class Chzzk:
         base, _ = os.path.splitext(file_path)
         file_path_mp4 = f"{base}.mp4"
 
-        logger.info(self.flag, f"Converting {file_path} to MP4...")
+        logger.info(f"Converting {file_path} to MP4...")
         try:
             # Convert the file with copying codecs
             (ffmpeg.input(file_path).output(file_path_mp4, format="mp4", vcodec="copy", acodec="copy").run(overwrite_output=True, quiet=True))
-            logger.info(self.flag, f"Converted {file_path} to {file_path_mp4}")
+            logger.info(f"Converted {file_path} to {file_path_mp4}")
             os.remove(file_path)
         except ffmpeg.Error as e:
-            logger.info(self.flag, f"Error: {e.stderr.decode('utf-8')}")
+            logger.info(f"Error: {e.stderr.decode('utf-8')}")
             os.remove(file_path_mp4)
             return
 
-        logger.info(self.flag, f"Conversion successful: {file_path} -> {file_path_mp4}")
+        logger.info(f"Conversion successful: {file_path} -> {file_path_mp4}")
 
     def download_stream(self, channel_id, output_file):
         url = f"https://chzzk.naver.com/live/{channel_id}"
         stream = self.get_streamlink().streams(url).get("best")  # HLSStream[mpegts]
 
         if not stream:
-            logger.error(self.flag, "Cannot find any streams.")
+            logger.error("Cannot find any streams.")
             return
 
         with stream.open() as fd:
             process = ffmpeg.input("pipe:0").output(output_file, vcodec="copy", acodec="copy").run_async(pipe_stdin=True, overwrite_output=True)
-            logger.info(self.flag, f"Recording to {output_file}...")
+            logger.info(f"Recording to {output_file}...")
             try:
                 while True:
                     data = fd.read(1024)
@@ -269,7 +269,7 @@ class Chzzk:
                         break
                     process.stdin.write(data)
             except KeyboardInterrupt:
-                logger.warning(self.flag, "KeyboardInterrupt received. Stopping the recording...")
+                logger.warning("KeyboardInterrupt received. Stopping the recording...")
             finally:
                 process.stdin.close()
                 process.wait()
@@ -300,7 +300,7 @@ class Chzzk:
 
         while True:
             status = self.get_status(self.id)
-            logger.debug(self.flag, f"status: {status}")
+            logger.debug(f"status: {status}")
             if status == "OPEN":
                 logger.info("The channel is on air.")
 
@@ -308,11 +308,11 @@ class Chzzk:
                 file_name = self.get_filename(self.name, title, self.format)
                 output_path = os.path.join(self.output, file_name)
 
-                logger.debug(self.flag, f"channel_name: {self.name}")
-                logger.debug(self.flag, f"title: {title}")
-                logger.debug(self.flag, f"output_path: {output_path}")
+                logger.debug(f"channel_name: {self.name}")
+                logger.debug(f"title: {title}")
+                logger.debug(f"output_path: {output_path}")
 
                 self.download_stream(self.id, output_path)
             else:
-                logger.info(self.flag, f"The channel is offline. Checking again in {self.interval} seconds.")
+                logger.info(f"The channel is offline. Checking again in {self.interval} seconds.")
                 time.sleep(self.interval)
