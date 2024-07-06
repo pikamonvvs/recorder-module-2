@@ -2,6 +2,7 @@
 # import json
 import os
 import re
+import sys
 import time
 from http.cookies import SimpleCookie
 
@@ -270,6 +271,7 @@ class Chzzk:
                     process.stdin.write(data)
             except KeyboardInterrupt:
                 logger.warning("KeyboardInterrupt received. Stopping the recording...")
+                raise
             finally:
                 process.stdin.close()
                 process.wait()
@@ -299,20 +301,30 @@ class Chzzk:
             os.makedirs(self.output)
 
         while True:
-            status = self.get_status(self.id)
-            logger.debug(f"status: {status}")
-            if status == "OPEN":
-                logger.info("The channel is on air.")
+            try:
+                status = self.get_status(self.id)
+                logger.debug(f"status: {status}")
+                if status == "OPEN":
+                    logger.info("The channel is on air.")
 
-                _, title = self.get_channel_info(self.id)
-                file_name = self.get_filename(self.name, title, self.format)
-                output_path = os.path.join(self.output, file_name)
+                    _, title = self.get_channel_info(self.id)
+                    file_name = self.get_filename(self.name, title, self.format)
+                    output_path = os.path.join(self.output, file_name)
 
-                logger.debug(f"channel_name: {self.name}")
-                logger.debug(f"title: {title}")
-                logger.debug(f"output_path: {output_path}")
+                    logger.debug(f"channel_name: {self.name}")
+                    logger.debug(f"title: {title}")
+                    logger.debug(f"output_path: {output_path}")
 
-                self.download_stream(self.id, output_path)
-            else:
-                logger.info(f"The channel is offline. Checking again in {self.interval} seconds.")
+                    self.download_stream(self.id, output_path)
+                else:
+                    logger.info(f"The channel is offline.")
+                    time.sleep(self.interval)
+            except streamlink.exceptions.PluginError as e:
+                print(f"Streamlink plugin error: {e}")
                 time.sleep(self.interval)
+            except requests.exceptions.RequestException as e:
+                print(f"HTTP request error: {e}")
+                time.sleep(self.interval)
+            except KeyboardInterrupt:
+                logger.info("Stopped by keyboard interrupt.")
+                sys.exit(0)
