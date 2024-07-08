@@ -18,6 +18,31 @@ h2 = "^4.1.0"
 pyinstaller = {version = "^6.8.0", python = ">=3.12,<3.13"}
 
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+
+[tool.pdm]
+distribution = false
+
+[tool.pdm.build]
+includes = []
+[project]
+name = "recorder-module-2"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "pikamonvvs", email = "pikamonvvs@naver.com"},
+]
+dependencies = [
+    "loguru<1.0.0,>=0.7.2",
+    "httpx<1.0.0,>=0.27.0",
+    "requests<3.0.0,>=2.32.3",
+    "types-requests<3.0.0.0,>=2.32.0.20240622",
+    "streamlink<7.0.0,>=6.8.1",
+    "httpx-socks<1.0.0,>=0.9.1",
+    "ffmpeg-python<1.0.0,>=0.2.0",
+    "h2<5.0.0,>=4.1.0",
+    "pyinstaller<7.0.0,>=6.8.0; python_version >= \"3.12\" and python_version < \"3.13\"",
+]
+requires-python = "<4.0,>=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+
