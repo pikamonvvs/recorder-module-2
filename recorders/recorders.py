@@ -86,7 +86,7 @@ class Chzzk:
             if self.name == self.id:
                 self.name = channel_name
         else:
-            channel_name, _ = self.get_channel_info(self.id)
+            channel_name = self.get_channel_name(self.id)
             if channel_name is None:
                 logutil.error(f"Cannot find channel name for ID {self.id}.")
                 return
@@ -155,7 +155,7 @@ class Chzzk:
             session.set_option("http-cookies", self.cookies)
         return session
 
-    def get_channel_info(self, channel_id):
+    def get_channel_name(self, channel_id):
         try:
             response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
             if response.status_code == 404:
@@ -175,12 +175,33 @@ class Chzzk:
                 logutil.error(self.flag, "Cannot find channel name.")
                 return None
 
+            return channel_name
+
+        except Exception as e:
+            logutil.error(self.flag, f"Error occurred while fetching channel information: {e}")
+            return None
+
+    def get_title(self, channel_id):
+        try:
+            response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
+            if response.status_code == 404:
+                logutil.error(self.flag, f"Page not found: {response.url}")
+                return None
+
+            response_json = response.json()
+            # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
+
+            content = response_json["content"]
+            if not content:
+                logutil.error(self.flag, "Cannot find channel information.")
+                return None
+
             title = content["liveTitle"].rstrip()
             if not title:
                 logutil.error(self.flag, "Cannot find title.")
                 return None
 
-            return channel_name, title
+            return title
 
         except Exception as e:
             logutil.error(self.flag, f"Error occurred while fetching channel information: {e}")
@@ -305,7 +326,7 @@ class Chzzk:
                 if status == "OPEN":
                     logutil.info(self.flag, "The channel is on air.")
 
-                    _, title = self.get_channel_info(self.id)
+                    title = self.get_title(self.id)
                     file_name = self.get_filename(self.name, title, self.format)
                     output_path = os.path.join(self.output, file_name)
 
