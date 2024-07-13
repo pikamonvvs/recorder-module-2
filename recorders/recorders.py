@@ -97,33 +97,40 @@ class Chzzk:
         pattern = re.compile(r"^[0-9a-f]{32}$")
         return bool(pattern.match(channel))
 
+    def is_file(self, file_path):
+        return os.path.isfile(file_path)
+
     def get_cookies(self):
+        logutil.info(self.flag, "self.cookies: ", self.cookies)
         if self.cookies:
             cookies = SimpleCookie()
+            if self.is_file(self.cookies):
+                self.cookies = open(self.cookies, "r").read().strip()
+                logutil.info(self.flag, "self.cookies: ", self.cookies)
             cookies.load(self.cookies)
             self.cookies = {k: v.value for k, v in cookies.items()}
 
-    def get_cookies_from_file(self):
-        current_script_dir = os.getcwd()
-        plugins_dir = os.path.join(current_script_dir, "plugins")
+    # def get_cookies_from_file(self):
+    #     current_script_dir = os.getcwd()
+    #     plugins_dir = os.path.join(current_script_dir, "plugins")
 
-        if not os.path.exists(plugins_dir):
-            os.makedirs(plugins_dir)
+    #     if not os.path.exists(plugins_dir):
+    #         os.makedirs(plugins_dir)
 
-        cookies_file_path = os.path.join(plugins_dir, "cookies.txt")
+    #     cookies_file_path = os.path.join(plugins_dir, "cookies.txt")
 
-        if not os.path.isfile(cookies_file_path) or os.path.getsize(cookies_file_path) == 0:
-            logutil.warning("The cookies.txt file does not exist or is empty. Please enter the cookie values.")
-            logutil.warning("\nReference: https://github.com/BlackOut-git/Chzzk-live-recorder")
-            NID_AUT = input("Enter the NID_AUT cookie value: ")
-            NID_SES = input("Enter the NID_SES cookie value: ")
-            with open(cookies_file_path, "w") as f:
-                f.write(f"NID_AUT={NID_AUT}; NID_SES={NID_SES};")
-        else:
-            logutil.info(f"cookies.txt exists on {cookies_file_path}")
+    #     if not os.path.isfile(cookies_file_path) or os.path.getsize(cookies_file_path) == 0:
+    #         logutil.warning("The cookies.txt file does not exist or is empty. Please enter the cookie values.")
+    #         logutil.warning("\nReference: https://github.com/BlackOut-git/Chzzk-live-recorder")
+    #         NID_AUT = input("Enter the NID_AUT cookie value: ")
+    #         NID_SES = input("Enter the NID_SES cookie value: ")
+    #         with open(cookies_file_path, "w") as f:
+    #             f.write(f"NID_AUT={NID_AUT}; NID_SES={NID_SES};")
+    #     else:
+    #         logutil.info(f"cookies.txt exists on {cookies_file_path}")
 
-        with open(cookies_file_path, "r") as f:
-            return f.read().strip()
+    #     with open(cookies_file_path, "r") as f:
+    #         return f.read().strip()
 
     def get_client(self):
         client_kwargs = {
@@ -160,7 +167,7 @@ class Chzzk:
             response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
             if response.status_code == 404:
                 logutil.error(self.flag, f"Page not found: {response.url}")
-                return None
+                return ""
 
             response_json = response.json()
             # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
@@ -168,25 +175,25 @@ class Chzzk:
             content = response_json["content"]
             if not content:
                 logutil.error(self.flag, "Cannot find channel information.")
-                return None
+                return ""
 
             channel_name = content["channel"]["channelName"]
             if not channel_name:
                 logutil.error(self.flag, "Cannot find channel name.")
-                return None
+                return ""
 
             return channel_name
 
         except Exception as e:
             logutil.error(self.flag, f"Error occurred while fetching channel information: {e}")
-            return None
+            return ""
 
     def get_title(self, channel_id):
         try:
             response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
             if response.status_code == 404:
                 logutil.error(self.flag, f"Page not found: {response.url}")
-                return None
+                return ""
 
             response_json = response.json()
             # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
@@ -194,24 +201,25 @@ class Chzzk:
             content = response_json["content"]
             if not content:
                 logutil.error(self.flag, "Cannot find channel information.")
-                return None
+                return ""
 
             title = content["liveTitle"].rstrip()
             if not title:
                 logutil.error(self.flag, "Cannot find title.")
-                return None
+                return ""
 
             return title
 
         except Exception as e:
             logutil.error(self.flag, f"Error occurred while fetching channel information: {e}")
-            return None
+            return ""
 
     def get_status(self, channel_id):
         try:
             response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
             if response.status_code == 404:
-                return None
+                logutil.error(self.flag, f"Page not found: {response.url}")
+                return ""
 
             response_json = response.json()
             # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
@@ -219,15 +227,13 @@ class Chzzk:
             status = response_json["content"]["status"]
             if not status:
                 logutil.error(self.flag, "Cannot find channel status.")
-                return None
+                return ""
 
             return status
 
         except Exception as e:
             logutil.info(self.flag, f"Error occurred while fetching channel information: {e}")
-            return None
-
-        return None
+            return ""
 
     def get_filename(self, channel_name, title, format):
         live_time = time.strftime("%Y.%m.%d %H.%M.%S")
@@ -253,6 +259,37 @@ class Chzzk:
 
         filename = f"[{live_time}]{self.flag}{title[:50]}.{format}"
         return filename
+
+    def get_adult_info(self, channel_id):
+        try:
+            response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
+            if response.status_code == 404:
+                logutil.error(self.flag, f"Page not found: {response.url}")
+                return ""
+
+            response_json = response.json()
+            # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
+
+            content = response_json["content"]
+            if not content:
+                logutil.error(self.flag, "Cannot find channel status.")
+                return ""
+
+            adult = content["adult"]
+            if not adult:
+                logutil.error(self.flag, "Cannot find adult status.")
+                return ""
+
+            user_adult_status = content["userAdultStatus"]
+            if not user_adult_status:
+                logutil.error(self.flag, "Cannot find user adult status.")
+                return ""
+
+            return adult, user_adult_status
+
+        except Exception as e:
+            logutil.info(self.flag, f"Error occurred while fetching channel information: {e}")
+            return ""
 
     def auto_convert_mp4(self, file_path):
         base, _ = os.path.splitext(file_path)
@@ -333,6 +370,10 @@ class Chzzk:
                     logutil.debug(self.flag, f"channel_name: {self.name}")
                     logutil.debug(self.flag, f"title: {title}")
                     logutil.debug(self.flag, f"output_path: {output_path}")
+
+                    adult, user_adult_status = self.get_adult_info(self.id)
+                    logutil.debug(self.flag, f"adult: {adult}")
+                    logutil.debug(self.flag, f"user_adult_status: {user_adult_status}")
 
                     self.download_stream(self.id, output_path)
                 else:
