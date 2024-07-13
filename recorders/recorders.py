@@ -280,12 +280,32 @@ class Chzzk:
                 logutil.error(self.flag, "Cannot find adult status.")
                 return ""
 
+            return adult
+        except Exception as e:
+            logutil.info(self.flag, f"Error occurred while fetching channel information: {e}")
+            return ""
+
+    def get_user_adult_status(self, channel_id):
+        try:
+            response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
+            if response.status_code == 404:
+                logutil.error(self.flag, f"Page not found: {response.url}")
+                return ""
+
+            response_json = response.json()
+            # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
+
+            content = response_json["content"]
+            if not content:
+                logutil.error(self.flag, "Cannot find channel status.")
+                return ""
+
             user_adult_status = content["userAdultStatus"]
             if not user_adult_status:
                 logutil.error(self.flag, "Cannot find user adult status.")
                 return ""
 
-            return adult, user_adult_status
+            return user_adult_status
 
         except Exception as e:
             logutil.info(self.flag, f"Error occurred while fetching channel information: {e}")
@@ -371,8 +391,9 @@ class Chzzk:
                     logutil.debug(self.flag, f"title: {title}")
                     logutil.debug(self.flag, f"output_path: {output_path}")
 
-                    adult, user_adult_status = self.get_adult_info(self.id)
+                    adult = self.get_adult_info(self.id)
                     logutil.debug(self.flag, f"adult: {adult}")
+                    user_adult_status = self.get_user_adult_status(self.id)
                     logutil.debug(self.flag, f"user_adult_status: {user_adult_status}")
 
                     self.download_stream(self.id, output_path)
