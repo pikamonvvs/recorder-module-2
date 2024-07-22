@@ -47,27 +47,44 @@ class Chzzk:
         try:
             logutil.debug(f"Searching for channel: {name}")
             response = requests.get(f"https://api.chzzk.naver.com/service/v1/search/channels?keyword={name}&size=10", headers=self.headers)
-            if response.status_code == 404:
-                logutil.error(f"Page not found: {response.url}")
+
+            if response.status_code != 200:
+                logutil.error(self.flag, f"Failed to load the page. Status code: {response.status_code}")
                 return None
 
             response_json = response.json()
-            # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
 
-            data = response_json["content"]["data"]
+            if response_json is None:
+                logutil.error("Response JSON is None.")
+                return None
+
+            content = response_json.get("content")
+            if content is None:
+                logutil.error("Invalid response structure: 'content' key is missing.")
+                return None
+
+            data = content.get("data")
+            if data is None:
+                logutil.error("Invalid response structure: 'data' key is missing.")
+                return None
+
             if not data:
                 logutil.error(f"Cannot find channel {name}.")
                 return None
 
             for channel in data:
-                channel_name = channel["channel"]["channelName"]
+                channel_info = channel.get("channel")
+                if channel_info is None:
+                    logutil.error("Invalid response structure: 'channel' key is missing.")
+                    continue
+
+                channel_name = channel_info.get("channelName")
                 if channel_name == name:
-                    channel_id = channel["channel"]["channelId"]
+                    channel_id = channel_info.get("channelId")
                     if not channel_id:
                         logutil.error("Cannot find channel ID.")
                         return None
                     return channel_id
-
         except Exception as e:
             logutil.error(f"Error occurred while fetching channel information: {e}")
             return None
@@ -165,72 +182,75 @@ class Chzzk:
     def get_channel_name(self, channel_id):
         try:
             response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
-            if response.status_code == 404:
-                logutil.error(self.flag, f"Page not found: {response.url}")
+            if response.status_code != 200:
+                logutil.error(self.flag, f"Failed to load the page. Status code: {response.status_code}")
+                return ""
+
+            if not response.content:
+                logutil.error(self.flag, "Response content is empty.")
                 return ""
 
             response_json = response.json()
-            # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
-
-            content = response_json["content"]
+            content = response_json.get("content")
             if not content:
-                logutil.error(self.flag, "Cannot find channel information.")
+                logutil.error(self.flag, "Cannot find content.")
                 return ""
 
-            channel_name = content["channel"]["channelName"]
+            channel_name = content.get("channel", {}).get("channelName")
             if not channel_name:
                 logutil.error(self.flag, "Cannot find channel name.")
                 return ""
 
             return channel_name
-
         except Exception as e:
-            logutil.error(self.flag, f"Error occurred while fetching channel information: {e}")
+            logutil.error(self.flag, f"Error occurred while fetching channel name: {e}")
             return ""
 
     def get_title(self, channel_id):
         try:
             response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
-            if response.status_code == 404:
-                logutil.error(self.flag, f"Page not found: {response.url}")
+            if response.status_code != 200:
+                logutil.error(self.flag, f"Failed to load the page. Status code: {response.status_code}")
+                return ""
+
+            if not response.content:
+                logutil.error(self.flag, "Response content is empty.")
                 return ""
 
             response_json = response.json()
-            # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
-
-            content = response_json["content"]
+            content = response_json.get("content")
             if not content:
-                logutil.error(self.flag, "Cannot find channel information.")
+                logutil.error(self.flag, "Cannot find content.")
                 return ""
 
-            title = content["liveTitle"].rstrip()
+            title = content.get("liveTitle", "").rstrip()
             if not title:
                 logutil.error(self.flag, "Cannot find title.")
                 return ""
 
             return title
-
         except Exception as e:
-            logutil.error(self.flag, f"Error occurred while fetching channel information: {e}")
+            logutil.error(self.flag, f"Error occurred while fetching title: {e}")
             return ""
 
     def get_status(self, channel_id):
         try:
             response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
-            if response.status_code == 404:
-                logutil.error(self.flag, f"Page not found: {response.url}")
+            if response.status_code != 200:
+                logutil.error(self.flag, f"Failed to load the page. Status code: {response.status_code}")
+                return ""
+
+            if not response.content:
+                logutil.error(self.flag, "Response content is empty.")
                 return ""
 
             response_json = response.json()
-            # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
-
-            status = response_json["content"]["status"]
+            status = response_json.get("content", {}).get("status")
             if not status:
                 logutil.error(self.flag, "Cannot find channel status.")
                 return ""
 
             return status
-
         except Exception as e:
             logutil.info(self.flag, f"Error occurred while fetching channel information: {e}")
             return ""
@@ -263,19 +283,21 @@ class Chzzk:
     def get_adult_info(self, channel_id):
         try:
             response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
-            if response.status_code == 404:
-                logutil.error(self.flag, f"Page not found: {response.url}")
+            if response.status_code != 200:
+                logutil.error(self.flag, f"Failed to load the page. Status code: {response.status_code}")
+                return ""
+
+            if not response.content:
+                logutil.error(self.flag, "Response content is empty.")
                 return ""
 
             response_json = response.json()
-            # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
-
-            content = response_json["content"]
+            content = response_json.get("content")
             if not content:
                 logutil.error(self.flag, "Cannot find channel status.")
                 return ""
 
-            adult = content["adult"]
+            adult = content.get("adult")
             if not adult:
                 logutil.error(self.flag, "Cannot find adult status.")
                 return ""
@@ -288,25 +310,26 @@ class Chzzk:
     def get_user_adult_status(self, channel_id):
         try:
             response = requests.get(f"https://api.chzzk.naver.com/service/v2/channels/{channel_id}/live-detail", headers=self.headers)
-            if response.status_code == 404:
-                logutil.error(self.flag, f"Page not found: {response.url}")
+            if response.status_code != 200:
+                logutil.error(self.flag, f"Failed to load the page. Status code: {response.status_code}")
+                return ""
+
+            if not response.content:
+                logutil.error(self.flag, "Response content is empty.")
                 return ""
 
             response_json = response.json()
-            # logutil.debug(self.flag, f"response_json: {json.dumps(response_json, indent=4, ensure_ascii=False)}")
-
-            content = response_json["content"]
+            content = response_json.get("content")
             if not content:
                 logutil.error(self.flag, "Cannot find channel status.")
                 return ""
 
-            user_adult_status = content["userAdultStatus"]
+            user_adult_status = content.get("userAdultStatus")
             if not user_adult_status:
                 logutil.error(self.flag, "Cannot find user adult status.")
                 return ""
 
             return user_adult_status
-
         except Exception as e:
             logutil.info(self.flag, f"Error occurred while fetching channel information: {e}")
             return ""
