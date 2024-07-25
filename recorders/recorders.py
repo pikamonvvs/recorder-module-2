@@ -86,7 +86,7 @@ class Chzzk:
                         return None
                     return channel_id
         except Exception as e:
-            logutil.error(f"Error occurred while fetching channel information: {e}")
+            logutil.error(f"Error occurred while fetching channel ID: {e}")
             return None
 
         logutil.error(f"Cannot find channel {name}.")
@@ -239,20 +239,28 @@ class Chzzk:
             if response.status_code != 200:
                 logutil.error(self.flag, f"Failed to load the page. Status code: {response.status_code}")
                 return ""
-
             if not response.content:
                 logutil.error(self.flag, "Response content is empty.")
                 return ""
 
             response_json = response.json()
-            status = response_json.get("content", {}).get("status")
+            if not response_json:
+                logutil.error(self.flag, "Response JSON is None or empty.")
+                return ""
+
+            content = response_json.get("content")
+            if not content:
+                logutil.error(self.flag, "Content is None or empty.")
+                return ""
+
+            status = content.get("status")
             if not status:
                 logutil.error(self.flag, "Cannot find channel status.")
                 return ""
 
             return status
         except Exception as e:
-            logutil.info(self.flag, f"Error occurred while fetching channel information: {e}")
+            logutil.info(self.flag, f"Error occurred while fetching status: {e}")
             return ""
 
     def get_filename(self, channel_name, title, format):
@@ -299,12 +307,12 @@ class Chzzk:
 
             adult = content.get("adult")
             if not adult:
-                logutil.error(self.flag, "Cannot find adult status.")
+                logutil.error(self.flag, "Cannot find adult info.")
                 return ""
 
             return adult
         except Exception as e:
-            logutil.info(self.flag, f"Error occurred while fetching channel information: {e}")
+            logutil.info(self.flag, f"Error occurred while fetching adult info: {e}")
             return ""
 
     def get_user_adult_status(self, channel_id):
@@ -331,7 +339,7 @@ class Chzzk:
 
             return user_adult_status
         except Exception as e:
-            logutil.info(self.flag, f"Error occurred while fetching channel information: {e}")
+            logutil.info(self.flag, f"Error occurred while fetching user adult status: {e}")
             return ""
 
     def auto_convert_mp4(self, file_path):
